@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -31,6 +31,19 @@
  */
 
 +function init_themes() {
+    let localstorage;
+    const local_storage_available = +function () {
+        try {
+            return !!(localstorage = window.localStorage);
+        } catch (e) {
+            console.warn('localStorage is unavailable');
+            localstorage = {
+                getItem: function (key) {return null;},
+            };
+            return false;
+        }
+    }();
+
     !window.uitheme && (window.uitheme = {});
 
     window.uitheme.set_id = function (id) {
@@ -59,20 +72,20 @@
             return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
 
-    !window.uitheme.id && window.uitheme.set_id(localStorage.getItem("ui-theme-id"));
-    window.uitheme.iscontentdark = localStorage.getItem("content-theme") == 'dark';
+    !window.uitheme.id && window.uitheme.set_id(localstorage.getItem("ui-theme-id"));
+    window.uitheme.iscontentdark = localstorage.getItem("content-theme") == 'dark';
 
-    let objtheme = window.uitheme.colors ? window.uitheme : localStorage.getItem("ui-theme");
+    let objtheme = window.uitheme.colors ? window.uitheme : localstorage.getItem("ui-theme");
     if ( !!objtheme ) {
-        if ( typeof(objtheme) == 'string' &&
-                objtheme.startsWith("{") && objtheme.endsWith("}") )
+        if ( typeof(objtheme) == 'string' && objtheme.lastIndexOf("{", 0) === 0 &&
+                objtheme.indexOf("}", objtheme.length - 1) !== -1 )
         {
             objtheme = JSON.parse(objtheme);
         }
 
         if ( objtheme ) {
             if ( window.uitheme.id && window.uitheme.id != objtheme.id ) {
-                localStorage.removeItem("ui-theme");
+                local_storage_available && localstorage.removeItem("ui-theme");
                 !window.uitheme.type && /-dark/.test(window.uitheme.id) && (window.uitheme.type = 'dark');
             } else {
                 window.uitheme.cache = objtheme;
@@ -81,14 +94,13 @@
                 }
 
                 if ( objtheme.colors ) {
+                    ['toolbar-header-document', 'toolbar-header-spreadsheet', 'toolbar-header-presentation', 'toolbar-header-pdf']
+                        .forEach(function (i) {
+                            !!objtheme.colors[i] && document.documentElement.style.setProperty('--' + i, objtheme.colors[i]);
+                        });
+
                     let colors = [];
                     for (let c in objtheme.colors) {
-                        // TODO: new PE brand color, clear for ver 7.7
-                        if ( c == 'toolbar-header-presentation' &&
-                                objtheme.colors[c] == '#aa5252' )
-                            objtheme.colors[c] = '#BE664F';
-                        //
-
                         colors.push('--' + c + ':' + objtheme.colors[c]);
                     }
 

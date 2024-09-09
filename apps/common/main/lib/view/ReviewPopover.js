@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -34,8 +34,7 @@
  *
  *  View
  *
- *  Created by Julia Radzhabova on 06.06.2018
- *  Copyright (c) 2018 Ascensio System SIA. All rights reserved.
+ *  Created on 06.06.2018
  *
  */
 
@@ -263,6 +262,7 @@ define([
                                 textEdit: me.textEdit,
                                 textReply: me.textReply,
                                 textClose: me.textClose,
+                                textComment: me.textComment,
                                 maxCommLength: Asc.c_oAscMaxCellOrCommentLength,
                                 textMentionComment: me.canRequestSendNotify ? (me.mentionShare ? me.textMention : me.textMentionNotify) : me.textEnterComment
                             })
@@ -1317,6 +1317,7 @@ define([
         txtAccept: 'Accept',
         txtReject: 'Reject',
         txtEditTip: 'Edit',
-        txtDeleteTip: 'Delete'
+        txtDeleteTip: 'Delete',
+        textComment: 'Comment'
     }, Common.Views.ReviewPopover || {}))
 });

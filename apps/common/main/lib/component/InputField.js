@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -32,8 +32,7 @@
 /**
  *  InputField.js
  *
- *  Created by Alexander Yuzhin on 4/10/14
- *  Copyright (c) 2018 Ascensio System SIA. All rights reserved.
+ *  Created on 4/10/14
  *
  */
 
@@ -111,7 +110,7 @@ define([
                 this.editable       = me.options.editable;
                 this.disabled       = me.options.disabled;
                 this.spellcheck     = me.options.spellcheck;
-                this.blankError     = me.options.blankError || 'This field is required';
+                this.blankError     = me.options.blankError || me.txtEmpty;
                 this.validateOnChange = me.options.validateOnChange;
                 this.validateOnBlur = me.options.validateOnBlur;
                 this.maxLength      = me.options.maxLength;
@@ -155,7 +154,7 @@ define([
                 if (!me.rendered) {
                     var el = this.cmpEl;
 
-                    this._input = this.cmpEl.find('input').addBack().filter('input');
+                    this._input = this.cmpEl.find('input').addBack().filter('input').first();
 
                     if (this.editable) {
                         this._input.on('blur',   _.bind(this.onInputChanged, this));
@@ -177,6 +176,10 @@ define([
                             Common.NotificationCenter.off({'modal:close': onModalClose});
                         };
                         Common.NotificationCenter.on({'modal:close': onModalClose});
+
+                    var ariaLabel = this.options.ariaLabel ? this.options.ariaLabel : this.placeHolder;
+                    if (ariaLabel)
+                        this._input.attr('aria-label', ariaLabel);
                 }
 
                 me.rendered = true;
@@ -290,9 +293,11 @@ define([
                 disabled = !!disabled;
                 this.disabled = disabled;
                 $(this.el).toggleClass('disabled', disabled);
-                disabled
-                    ? this._input.attr('disabled', true)
-                    : this._input.removeAttr('disabled');
+                if (this._input) {
+                    disabled
+                        ? this._input.attr('disabled', true)
+                        : this._input.removeAttr('disabled');
+                }
             },
 
             isDisabled: function() {
@@ -394,7 +399,9 @@ define([
 
             showWarning: function(errors) {
                 this.showError(errors, true);
-            }
+            },
+
+            txtEmpty: 'This field is required'
         }
     })());
 
@@ -504,6 +511,10 @@ define([
                             Common.NotificationCenter.off({'modal:close': onModalClose});
                         };
                     Common.NotificationCenter.on({'modal:close': onModalClose});
+
+                    var ariaLabel = this.options.ariaLabel ? this.options.ariaLabel : this.placeHolder;
+                    if (ariaLabel)
+                        this._input.attr('aria-label', ariaLabel);
                 }
 
                 me.rendered = true;
@@ -568,7 +579,7 @@ define([
 
             initialize : function(options) {
                 options = options || {};
-                options.btnHint = options.btnHint || this.textHintShowPwd;
+                options.btnHint = options.btnHint || (options.showPwdOnClick ? this.textHintShowPwd : this.textHintHold);
                 options.iconCls = options.showCls || this.options.showCls;
 
                 Common.UI.InputFieldBtn.prototype.initialize.call(this, options);
@@ -656,7 +667,8 @@ define([
                 }
             },
             textHintShowPwd: 'Show password',
-            textHintHidePwd: 'Hide password'
+            textHintHidePwd: 'Hide password',
+            textHintHold: 'Press and hold to show password'
         }
     })(), Common.UI.InputFieldBtnPassword || {}));
 
@@ -728,6 +740,84 @@ define([
             },
 
             textDate: 'Select date'
+        }
+    })());
+
+    Common.UI.InputFieldFixed = Common.UI.InputField.extend((function() {
+        return {
+            options : {
+                id          : null,
+                cls         : '',
+                style       : '',
+                value       : '',
+                fixedValue  : '',
+                type        : 'text',
+                name        : '',
+                validation  : null,
+                allowBlank  : true,
+                placeHolder : '',
+                blankError  : null,
+                spellcheck  : false,
+                maskExp     : '',
+                validateOnChange: false,
+                validateOnBlur: true,
+                disabled: false,
+                editable: true,
+                btnHint: ''
+            },
+
+            template: _.template([
+                '<div class="input-field input-field-fixed" style="<%= style %>">',
+                    '<input ',
+                    'type=<%= type %> ',
+                    'name="<%= name %>" ',
+                    'spellcheck="<%= spellcheck %>" ',
+                    'class="form-control <%= cls %>" ',
+                    'placeholder="<%= placeHolder %>" ',
+                    'value="<%= value %>"',
+                    'data-hint="<%= dataHint %>"',
+                    'data-hint-offset="<%= dataHintOffset %>"',
+                    'data-hint-direction="<%= dataHintDirection %>"',
+                    '>',
+                '<span class="input-error"></span>',
+                '<input class="fixed-text form-control" type="text" readonly="readonly">' +
+                '</div>'
+            ].join('')),
+
+            initialize : function(options) {
+                this.fixedValue = options.fixedValue;
+
+                Common.UI.InputField.prototype.initialize.call(this, options);
+            },
+
+            render : function(parentEl) {
+                Common.UI.InputField.prototype.render.call(this, parentEl);
+
+                if (this.fixedValue)
+                    this.setFixedValue(this.fixedValue);
+
+                return this;
+            },
+
+            setFixedValue: function(value) {
+                this.fixedValue = value;
+
+                if (this.rendered){
+                    this.cmpEl.find('input.fixed-text').addBack().filter('input.fixed-text').val(value);
+                }
+            },
+
+            setDisabled: function(disabled) {
+                disabled = !!disabled;
+                this.disabled = disabled;
+                $(this.el).toggleClass('disabled', disabled);
+                if (this.cmpEl) {
+                    var inputs = this.cmpEl.find('input').addBack().filter('input')
+                    disabled
+                        ? inputs.attr('disabled', true)
+                        : inputs.removeAttr('disabled');
+                }
+            },
         }
     })());
 });

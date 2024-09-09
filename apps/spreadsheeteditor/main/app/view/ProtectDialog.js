@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -32,14 +32,11 @@
 /**
  *  ProtectDialog.js
  *
- *  Created by Julia Radzhabova on 21.06.2021
- *  Copyright (c) 2021 Ascensio System SIA. All rights reserved.
+ *  Created on 21.06.2021
  *
  */
 
-define([
-    'common/main/lib/component/Window'
-], function () {
+define([], function () {
     'use strict';
 
     SSE.Views.ProtectDialog = Common.UI.Window.extend(_.extend({
@@ -155,7 +152,7 @@ define([
                 maxLength: 255,
                 validateOnBlur: false,
                 repeatInput: this.repeatPwd,
-                showPwdOnClick: true
+                showPwdOnClick: false
             });
 
             if (this.type == 'sheet') {
@@ -175,7 +172,8 @@ define([
                         '<div style="flex-grow: 1;"><%= Common.Utils.String.htmlEncode(value) %></div>',
                         '</div>',
                         '</div>'
-                    ].join(''))
+                    ].join('')),
+                    tabindex: 1
                 });
                 this.optionsList.on({
                     'item:change': this.onItemChanged.bind(this),
@@ -242,7 +240,7 @@ define([
             (this.type == 'range') && (arr = arr.concat([this.inputRangeName, this.txtDataRange]));
             arr = arr.concat([this.inputPwd, this.repeatPwd]);
             (this.type == 'sheet') && (arr = [this.btnAllowRanges].concat(arr).concat([this.optionsList]));
-            return arr;
+            return arr.concat(this.getFooterButtons());
         },
 
         getDefaultFocusableComponent: function () {

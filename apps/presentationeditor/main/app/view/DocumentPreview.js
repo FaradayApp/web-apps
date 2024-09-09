@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -32,8 +32,7 @@
 /**
  *  DocumentPreview.js
  *
- *  Created by Julia Radzhabova on 4/18/14
- *  Copyright (c) 2018 Ascensio System SIA. All rights reserved.
+ *  Created on 4/18/14
  *
  */
 
@@ -42,7 +41,8 @@ define([
     'underscore',
     'backbone',
     'common/main/lib/component/BaseView',
-    'presentationeditor/main/app/model/Pages'
+    'presentationeditor/main/app/model/Pages',
+    'common/main/lib/component/InputField'
 ], function () {
     'use strict';
 
@@ -346,7 +346,7 @@ define([
 
         setMode: function(mode) {
             this.mode = mode;
-            if (this.mode.isDesktopApp || Common.Utils.isIE11) {
+            if (this.mode.isDesktopApp || Common.Utils.isIE11 || !document.fullscreenEnabled) {
                 this.btnFullScreen.setVisible(false);
                 this.separatorFullScreen.hide();
                 $(document).off("webkitfullscreenchange mozfullscreenchange fullscreenchange MSFullscreenChange");
@@ -375,22 +375,28 @@ define([
 
         onEndDemonstration: function( ) {
             this.hide();
-            this.fullScreenCancel();
+            Common.Utils.cancelFullscreen();
         },
 
         onDemonstrationStatus: function(status) {
-            var iconEl = $('.icon', this.btnPlay.cmpEl);
-            iconEl.toggleClass('btn-preivew-pause', status=="play");
-            iconEl.toggleClass('btn-preivew-play', status!=="play");
+            (status=="play") ? this.btnPlay.changeIcon({curr: 'btn-play', next: 'btn-preview-pause'}) :
+                               this.btnPlay.changeIcon({curr: 'btn-preview-pause', next: 'btn-play'});
             this.btnPlay.updateHint((status=="play") ? this.txtPause : this.txtPlay);
         },
 
         toggleFullScreen: function() {
             if (!document.fullscreenElement && !document.msFullscreenElement && 
-                !document.mozFullScreenElement && !document.webkitFullscreenElement) {
-                this.fullScreen(document.documentElement);
+                !document.mozFullScreenElement && !document.webkitFullscreenElement)
+            {
+                if (this.mode.isDesktopApp || Common.Utils.isIE11) return;
+                const elem = document.getElementById('pe-preview');
+                if ( elem ) {
+                    Common.Utils.startFullscreenForElement(elem);
+                    this.previewControls.css('display', 'none');
+                    this.$el.css('cursor', 'none');
+                }
             } else {
-                this.fullScreenCancel();
+                Common.Utils.cancelFullscreen();
             }
         },
 

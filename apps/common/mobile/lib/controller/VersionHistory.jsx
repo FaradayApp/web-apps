@@ -4,6 +4,7 @@ import VersionHistoryView from '../view/VersionHistory';
 import { f7, Sheet, Popover, View } from 'framework7-react';
 import { useTranslation } from 'react-i18next';
 import { Device } from '../../../../common/mobile/utils/device';
+import { getUserColor } from '../../utils/getUserColor';
 
 const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory')(observer(props => {
     const api = Common.EditorApi.get();
@@ -12,6 +13,12 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
     const historyStore = props.storeVersionHistory;
     const isVersionHistoryMode = historyStore.isVersionHistoryMode;
     const arrVersionsHistory = historyStore.arrVersions;
+    const fileTypes = {
+        de: 'docx',
+        pe: 'pptx',
+        sse: 'xslx'
+    };
+    const fileType = fileTypes[window.editorType];
     const { t } = useTranslation();
 
     let currentChangeId = -1;
@@ -30,7 +37,7 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
     const currentArrColors = useRef(null);
 
     useEffect(() => {
-        const api = Common.EditorApi.get();
+        api.asc_enableKeyEvents(false);
 
         if(arrVersionsHistory.length < 1) {
             Common.Gateway.requestHistory();
@@ -61,6 +68,7 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
         }
 
         return () => {
+            api.asc_enableKeyEvents(true);
             api.asc_unregisterCallback('asc_onDownloadUrl', onDownloadUrl);
             api.asc_unregisterCallback('asc_onExpiredToken', onExpiredToken);
         }
@@ -124,11 +132,13 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
                     user = historyStore.findUserById(version.user.id);
 
                     if (!user) {
+                        const color = getUserColor(version.user.id || version.user.name || t('Common.VersionHistory.textAnonymous'), true);
+
                         user = {
                             id: version.user.id,
                             username: version.user.name || t('Common.VersionHistory.textAnonymous'),
-                            colorval: Asc.c_oAscArrUserColors[usersCnt],
-                            color: generateUserColor(Asc.c_oAscArrUserColors[usersCnt++]),
+                            colorval: color,
+                            color: generateUserColor(color),
                            
                         };
 
@@ -148,7 +158,7 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
                         canRestore: appOptions.canHistoryRestore && (ver < versions.length - 1),
                         isExpanded: true,
                         serverVersion: version.serverVersion,
-                        fileType: 'docx',
+                        fileType,
                         isRevision: true
                     });
 
@@ -185,11 +195,13 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
                                 user = historyStore.findUserById(change.user.id);
 
                                 if (!user) {
+                                    const color = getUserColor(change.user.id || change.user.name || t('Common.VersionHistory.textAnonymous'), true);
+
                                     user = {
                                         id: change.user.id,
                                         username: change.user.name || t('Common.VersionHistory.textAnonymous'),
-                                        colorval: Asc.c_oAscArrUserColors[usersCnt],
-                                        color: generateUserColor(Asc.c_oAscArrUserColors[usersCnt++]),
+                                        colorval: color,
+                                        color: generateUserColor(color),
                                     };
 
                                     historyStore.addUser(user);
@@ -210,7 +222,7 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
                                     isRevision: false,
                                     isVisible: true,
                                     serverVersion: version.serverVersion,
-                                    fileType: 'docx'
+                                    fileType
                                 });
 
                                 arrColors.push(user.colorval);
@@ -220,30 +232,28 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
                         arrVersions[arrVersions.length - 1].docId = version.key + '1';
                     }
                 }
-            
-                if (arrColors.length > 0) {
-                    arrColors.reverse();
+            }
 
-                    for (let i = 0; i < arrColors.length; i++) {
-                        arrVersions[arrVersions.length - i - 1].arrColors = arrColors;
-                    }
+            if (arrColors.length > 0) {
+                arrColors.reverse();
 
-                    arrColors = [];
+                for (let i = 0; i < arrColors.length; i++) {
+                    arrVersions[arrVersions.length - i - 1].arrColors = arrColors;
                 }
 
-                historyStore.setVersions(arrVersions);
+                arrColors = [];
+            }
 
-                if (currentVersion === null && historyStore.arrVersions.length > 0) {
-                    arrVersions[0].selected = true;
-                    currentVersion = JSON.parse(JSON.stringify(arrVersions[0]));
-                  
-                    historyStore.setVersions([...arrVersions]);
-                    historyStore.changeVersion(currentVersion);
-                } else {
-                    if(!historyStore.currentVersion) {
-                        onSelectRevision(currentVersion);
-                    }
-                }
+            historyStore.setVersions(arrVersions);
+
+            if (currentVersion === null && historyStore.arrVersions.length > 0) {
+                arrVersions[0].selected = true;
+                currentVersion = JSON.parse(JSON.stringify(arrVersions[0]));
+                
+                historyStore.setVersions([...arrVersions]);
+                historyStore.changeVersion(currentVersion);
+            } else if(!historyStore.currentVersion) {
+                onSelectRevision(currentVersion);
             }
         }
     }
@@ -304,7 +314,7 @@ const VersionHistoryController = inject('storeAppOptions', 'storeVersionHistory'
                 }
 
                 const hist = new Asc.asc_CVersionHistory();
-               
+                
                 hist.asc_setUrl(url);
                 hist.asc_setUrlChanges(diff);
                 hist.asc_setDocId(!diff ? docId : docIdPrev);

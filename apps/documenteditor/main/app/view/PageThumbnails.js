@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -30,7 +30,6 @@
  *
  */
 /**
- * User: Julia.Svinareva
  * Date: 23.08.2021
  */
 
@@ -38,7 +37,8 @@ define([
     'common/main/lib/util/utils',
     'common/main/lib/component/BaseView',
     'common/main/lib/component/Layout',
-    'common/main/lib/component/TreeView'
+    'common/main/lib/component/TreeView',
+    'common/main/lib/component/Slider'
 ], function (template) {
     'use strict';
 

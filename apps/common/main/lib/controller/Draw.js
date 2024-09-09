@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -33,8 +33,7 @@
 /**
  *  Draw.js
  *
- *  Created by Julia Radzhabova on 28.03.2023
- *  Copyright (c) 2023 Ascensio System SIA. All rights reserved.
+ *  Created on 28.03.2023
  *
  */
 
@@ -44,10 +43,7 @@ Common.Controllers = Common.Controllers || {};
 
 define([
     'core',
-    'common/main/lib/view/Draw',
-    'common/main/lib/view/PasswordDialog',
-    'common/main/lib/view/SignDialog',
-    'common/main/lib/view/SignSettingsDialog'
+    'common/main/lib/view/Draw'
 ], function () {
     'use strict';
 
@@ -111,6 +107,7 @@ define([
 
         onInkDrawerStop: function() {
             this.view && this.view.depressButtons();
+            Common.NotificationCenter.trigger('draw:stop', this.view);
         },
 
         onSelect: function(btn){
@@ -125,6 +122,7 @@ define([
                 else {
                     this.view.depressButtons(btn);
                     this.api.asc_StartInkEraser();
+                    Common.NotificationCenter.trigger('draw:start', this.view);
                 }
             }
         },
@@ -143,7 +141,8 @@ define([
                     stroke.asc_putPrstDash(Asc.c_oDashType.solid);
                     stroke.put_width(options.size.arr[options.size.idx]);
                     stroke.put_transparent(options.opacity * 2.55);
-                    this.api.asc_StartDrawInk(stroke);
+                    this.api.asc_StartDrawInk(stroke, options.idx);
+                    Common.NotificationCenter.trigger('draw:start', this.view);
                 }
             }
         },
@@ -173,8 +172,8 @@ define([
             this.onDrawPen(btn);
         },
 
-        createToolbarPanel: function() {
-            return this.view.getPanel();
+        createToolbarPanel: function(groups) {
+            return this.view.getPanel(groups);
         },
 
         getView: function(name) {

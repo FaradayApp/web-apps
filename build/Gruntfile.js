@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -271,7 +271,7 @@ module.exports = function(grunt) {
                       src: ['<%= pkg.api.copy.script.dest %>' +  '/**/*.js'],
                       overwrite: true,
                       replacements: [{
-                          from: /\{\{PRODUCT_VERSION\}\}/,
+                          from: /\{\{PRODUCT_VERSION\}\}/g,
                           to: packageFile.version
                       },{
                           from: /\{\{APP_CUSTOMER_NAME\}\}/g,
@@ -301,6 +301,7 @@ module.exports = function(grunt) {
                         params: {
                             overrides: {
                                 cleanupIds: false,
+                                removeHiddenElems: false,   // plugin ver 3.2.0 deletes <symbol> as non rendering element
                             }
                         },
                     },
@@ -315,6 +316,11 @@ module.exports = function(grunt) {
                     files: packageFile['apps-common'].svgicons.common
                 }
             },
+            inline: {
+                dist: {
+                    src: packageFile['apps-common'].copy.indexhtml.dest + '/*.html'
+                }
+            }
         }
     });
     doRegisterTask('socketio');
@@ -391,7 +397,10 @@ module.exports = function(grunt) {
                 },
                 compile: {
                     options: packageFile['main']['js']['requirejs']['options']
-                }
+                },
+                postload: {
+                    options: packageFile.main.js.postload.options
+                },
             },
 
             replace: {
@@ -451,6 +460,9 @@ module.exports = function(grunt) {
             },
 
             inline: {
+                options: {
+                    uglify: true
+                },
                 dist: {
                     src: '<%= pkg.main.copy.indexhtml[0].dest %>/*.html'
                 }
@@ -463,6 +475,7 @@ module.exports = function(grunt) {
                         params: {
                             overrides: {
                                 cleanupIds: false,
+                                removeHiddenElems: false,   // plugin ver 3.2.0 deletes <symbol> as non rendering element
                             }
                         },
                     },
@@ -484,10 +497,15 @@ module.exports = function(grunt) {
                         comments: false,
                         preamble: "/* minified by terser */",
                     },
+                    sourceMap: true,
                 },
                 build: {
                     src: [packageFile['main']['js']['requirejs']['options']['out']],
                     dest: packageFile['main']['js']['requirejs']['options']['out']
+                },
+                postload: {
+                    src: packageFile.main.js.postload.options.out,
+                    dest: packageFile.main.js.postload.options.out,
                 },
             },
         });
@@ -665,6 +683,7 @@ module.exports = function(grunt) {
                         comments: false,
                         preamble: copyright,
                     },
+                    sourceMap: true,
                 },
                 build: {
                     src: packageFile['embed']['js']['src'],
@@ -688,11 +707,17 @@ module.exports = function(grunt) {
                 localization: {
                     files: packageFile['embed']['copy']['localization']
                 },
-                'index-page': {
-                    files: packageFile['embed']['copy']['index-page']
+                indexhtml: {
+                    files: packageFile['embed']['copy']['indexhtml']
                 },
                 'images-app': {
                     files: packageFile['embed']['copy']['images-app']
+                }
+            },
+
+            inline: {
+                dist: {
+                    src: '<%= pkg.embed.copy.indexhtml[0].dest %>/*.html'
                 }
             }
         });
@@ -755,7 +780,7 @@ module.exports = function(grunt) {
     var copyTask = grunt.option('desktop')? "copy": "copy:script";
 
     grunt.registerTask('deploy-api',                    ['api-init', 'clean', copyTask, 'replace:writeVersion']);
-    grunt.registerTask('deploy-apps-common',            ['apps-common-init', 'clean', 'copy', 'imagemin', 'svgmin']);
+    grunt.registerTask('deploy-apps-common',            ['apps-common-init', 'clean', 'copy', 'inline', 'imagemin', 'svgmin']);
     grunt.registerTask('deploy-sdk',                    ['sdk-init', 'clean', copyTask]);
 
     grunt.registerTask('deploy-socketio',               ['socketio-init', 'clean', 'copy']);
@@ -776,13 +801,14 @@ module.exports = function(grunt) {
 
     grunt.registerTask('deploy-app-mobile',             []);
 
-    grunt.registerTask('deploy-app-embed',              ['embed-app-init', 'clean:prebuild', 'less', 'copy', 'clean:postbuild']);
-    grunt.registerTask('deploy-app-test',               ['test-app-init', 'clean:prebuild', 'less', 'copy']);
+    grunt.registerTask('deploy-app-embed',              ['embed-app-init', 'clean:prebuild', 'terser', 'less', 'copy', 'inline', 'clean:postbuild']);
+    grunt.registerTask('deploy-app-test',               ['test-app-init', 'clean:prebuild', 'terser', 'less', 'copy']);
 
     doRegisterInitializeAppTask('common',               'Common',               'common.json');
     doRegisterInitializeAppTask('documenteditor',       'DocumentEditor',       'documenteditor.json');
     doRegisterInitializeAppTask('spreadsheeteditor',    'SpreadsheetEditor',    'spreadsheeteditor.json');
     doRegisterInitializeAppTask('presentationeditor',   'PresentationEditor',   'presentationeditor.json');
+    doRegisterInitializeAppTask('pdfeditor',            'PDFEditor',            'pdfeditor.json');
 
     doRegisterInitializeAppTask('testdocumenteditor',    'TestDocumentEditor',           'testdocumenteditor.json');
     doRegisterInitializeAppTask('testpresentationeditor', 'TestPresentationEditor',      'testpresentationeditor.json');
@@ -803,12 +829,14 @@ module.exports = function(grunt) {
     grunt.registerTask('deploy-documenteditor-component',     ['init-build-documenteditor', 'deploy-app']);
     grunt.registerTask('deploy-spreadsheeteditor-component',  ['init-build-spreadsheeteditor', 'deploy-app']);
     grunt.registerTask('deploy-presentationeditor-component', ['init-build-presentationeditor', 'deploy-app']);
+    grunt.registerTask('deploy-pdfeditor-component',          ['init-build-pdfeditor', 'deploy-app']);
     // This task is called from the Makefile, don't delete it.
     grunt.registerTask('deploy-documents-component',          ['deploy-common-component']);   
 
     grunt.registerTask('deploy-documenteditor',     ['deploy-common-component', 'deploy-documenteditor-component']);
     grunt.registerTask('deploy-spreadsheeteditor',  ['deploy-common-component', 'deploy-spreadsheeteditor-component']);
     grunt.registerTask('deploy-presentationeditor', ['deploy-common-component', 'deploy-presentationeditor-component']);
+    grunt.registerTask('deploy-pdfeditor',          ['deploy-common-component', 'deploy-pdfeditor-component']);
 
     grunt.registerTask('deploy-testdocumenteditor', ['init-build-testdocumenteditor', 'deploy-app']);
     grunt.registerTask('deploy-testpresentationeditor', ['init-build-testpresentationeditor', 'deploy-app']);
@@ -817,5 +845,6 @@ module.exports = function(grunt) {
     grunt.registerTask('default', ['deploy-common-component',
                                    'deploy-documenteditor-component',
                                    'deploy-spreadsheeteditor-component',
-                                   'deploy-presentationeditor-component']);
+                                   'deploy-presentationeditor-component',
+                                   'deploy-pdfeditor-component']);
 };

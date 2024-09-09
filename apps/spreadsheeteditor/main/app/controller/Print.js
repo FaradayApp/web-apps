@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -30,9 +30,7 @@
  *
  */
 define([
-    'core',
-    'spreadsheeteditor/main/app/view/FileMenuPanels',
-    'spreadsheeteditor/main/app/view/PrintSettings'
+    'core'
 ], function () {
     'use strict';
 
@@ -76,10 +74,16 @@ define([
             Common.NotificationCenter.on('print', _.bind(this.openPrintSettings, this, 'print'));
             Common.NotificationCenter.on('download:settings', _.bind(this.openPrintSettings, this, 'download'));
             Common.NotificationCenter.on('export:to', _.bind(this.openPrintSettings, this, 'export'));
+            Common.NotificationCenter.on('script:loaded', _.bind(this.onPostLoadComplete, this));
         },
 
         onLaunch: function() {
+        },
+
+        onPostLoadComplete: function() {
+            this.views = this.getApplication().getClasseRefs('view', ['PrintWithPreview']);
             this.printSettings = this.createView('PrintWithPreview');
+            this.setMode(this.mode);
         },
 
         onAfterRender: function(view) {
@@ -143,7 +147,7 @@ define([
         },
 
         updateSheetsInfo: function() {
-            if (this.printSettings.isVisible()) {
+            if (this.printSettings && this.printSettings.isVisible()) {
                 this.updateSettings(this.printSettings);
             } else {
                 this.isFillSheets = false;
@@ -391,7 +395,7 @@ define([
             !!pageCount && this.updatePreview();
         },
 
-        openPrintSettings: function(type, cmp, format, asUrl) {
+        openPrintSettings: function(type, cmp, format, asUrl, wopiPath) {
             if (this.printSettingsDlg && this.printSettingsDlg.isVisible()) {
                 asUrl && Common.NotificationCenter.trigger('download:cancel');
                 return;
@@ -401,6 +405,7 @@ define([
                 Common.UI.Menu.Manager.hideAll();
                 this.asUrl = asUrl;
                 this.downloadFormat = format;
+                this.downloadWopiPath = wopiPath;
                 this.printSettingsDlg = (new SSE.Views.PrintSettings({
                     type: type,
                     handler: _.bind(this.resultPrintSettings,this),
@@ -478,6 +483,8 @@ define([
                 } else {
                     var opts = new Asc.asc_CDownloadOptions(this.downloadFormat, this.asUrl);
                     opts.asc_setAdvancedOptions(this.adjPrintParams);
+                    opts.asc_setIsSaveAs(this.asUrl);
+                    this.downloadWopiPath && opts.asc_setWopiSaveAsPath(this.downloadWopiPath);
                     this.api.asc_DownloadAs(opts);
                 }
                 Common.component.Analytics.trackEvent((this.printSettingsDlg.type=='print') ? 'Print' : 'DownloadAs');
@@ -602,19 +609,27 @@ define([
                         var opt;
                         if (result == 'ok') {
                             opt = dlg.getSettings();
-                            Common.localStorage.setItem("sse-pgmargins-top", opt.asc_getTop());
-                            Common.localStorage.setItem("sse-pgmargins-left", opt.asc_getLeft());
-                            Common.localStorage.setItem("sse-pgmargins-bottom", opt.asc_getBottom());
-                            Common.localStorage.setItem("sse-pgmargins-right", opt.asc_getRight());
-                            Common.NotificationCenter.trigger('margins:update', opt, panel);
-                            me.setMargins(panel, opt);
-                            me._margins[panel.cmbSheet.getValue()] = opt;
+                            var margins = opt.margins;
+                            Common.localStorage.setItem("sse-pgmargins-top", margins.asc_getTop());
+                            Common.localStorage.setItem("sse-pgmargins-left", margins.asc_getLeft());
+                            Common.localStorage.setItem("sse-pgmargins-bottom", margins.asc_getBottom());
+                            Common.localStorage.setItem("sse-pgmargins-right", margins.asc_getRight());
+                            Common.NotificationCenter.trigger('margins:update', margins, panel);
+                            me.setMargins(panel, margins);
+                            var currentSheet = panel.cmbSheet.getValue();
+                            me._margins[currentSheet] = margins;
+                            if (me._changedProps && me._changedProps[currentSheet]) {
+                                me._changedProps[currentSheet].asc_setVerticalCentered(opt.vertical);
+                                me._changedProps[currentSheet].asc_setHorizontalCentered(opt.horizontal);
+                            }
                             setChanges();
                             Common.NotificationCenter.trigger('edit:complete');
                         } else {
                             me.setMargins(panel, props.asc_getPageMargins());
                         }
                     }
+                }).on('close', function() {
+                    panel.cmbPaperMargins.focus();
                 });
                 win.show();
                 win.setSettings(props);
@@ -743,6 +758,7 @@ define([
                                 panel.dataRangeLeft = valid;
                             txtRange.setValue(valid);
                             txtRange.checkValidate();
+                            txtRange._input.blur();
                         }
                     };
 
@@ -772,13 +788,11 @@ define([
                     value = this.api.asc_getPrintTitlesRange(Asc.c_oAscPrintTitlesRangeType.first, type=='left', panel.cmbSheet.getValue());
                 txtRange.setValue(value);
                 txtRange.checkValidate();
+                txtRange._input.blur();
                 if (type=='top')
                     panel.dataRangeTop = value;
                 else
                     panel.dataRangeLeft = value;
-                _.delay(function(){
-                    txtRange.focus();
-                },1);
             }
         },
 

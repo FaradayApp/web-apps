@@ -107,74 +107,6 @@
 }
 
 #file-menu-panel {
-    .panel-menu {
-        li {
-            list-style: none;
-            position: relative;
-
-            &.fm-btn {
-                height: 27px;
-                margin-bottom: 3px;
-
-                &:hover {
-                    background-color: @highlight-button-hover-ie;
-                    background-color: @highlight-button-hover;
-                }
-
-                &.active {
-                    outline: 0;
-                    background-color: @highlight-button-pressed-ie;
-                    background-color: @highlight-button-pressed;
-
-                    > a {
-                        color: @text-normal-pressed-ie;
-                        color: @text-normal-pressed;
-                    }
-                }
-
-                &.disabled {
-                    > a {
-                        &:extend(.dropdown-menu > .disabled > a);
-
-                        &:hover, &:focus {
-                            &:extend(.dropdown-menu > .disabled > a:hover);
-                            background-color: transparent;
-                        }
-                    }
-
-                    &:hover {
-                        background-color: transparent;
-                    }
-                }
-            }
-
-            &.devider {
-                .dropdown-menu .divider;
-                margin-top: 10px;
-                margin-bottom: 10px;
-            }
-
-            &:first-child {
-                margin-top: 15px;
-            }
-
-            > a {
-                &:extend(.dropdown-menu > li > a);
-                padding-top: 4px;
-                cursor: pointer;
-                .font-size-large();
-
-                &:hover {
-                    text-decoration: none;
-                }
-
-                &:focus {
-                    outline: 0;
-                }
-            }
-        }
-    }
-
     .panel-context {
         width: 100%;
         .padding-left(260px);
@@ -396,7 +328,8 @@
 
             .item {
                 border: none;
-                width: calc(100% - 4px);
+                .margin-left-4;
+                width: 100%;
                 .box-shadow(none);
             }
 
@@ -421,7 +354,7 @@
                         height: 100%;
                         div{
                             background: ~"url(@{common-image-const-path}/doc-formats/formats.png)";
-                            background-size: 744px 30px;
+                            background-size: 1056px 30px;
                             &:not(.svg-file-recent) {
                                 .pixel-ratio__1_25 & {
                                     background-image: ~"url(@{common-image-const-path}/doc-formats/formats@1.25x.png)";
@@ -440,33 +373,51 @@
                                 }
                             }
                         }
+                        .format-from-index(@index) {
+                            background-position: -24px*@index 0;
+                        }
                         .img-format- {
                             &pptx {
-                                background-position: 504px 0px;
+                                .format-from-index(10);
                             }
 
                             &pdf, &pdfa {
-                                background-position: 408px 0px;
+                                .format-from-index(14);
                             }
 
                             &odp {
-                                background-position: 456px 0px;
+                                .format-from-index(12);
                             }
 
                             &potx {
-                                background-position: 192px 0px;
+                                .format-from-index(23);
                             }
 
                             &otp {
-                                background-position: 120px 0px;
+                                .format-from-index(26);
                             }
 
                             &ppsx {
-                                background-position: 72px 0px;
+                                .format-from-index(28);
                             }
 
                             &ppt {
-                                background-position: 480px 0px;
+                                .format-from-index(11);
+                            }
+                            &pptm {
+                                .format-from-index(38);
+                            }
+                            &ppsm {
+                                .format-from-index(39);
+                            }
+                            &potm {
+                                .format-from-index(40);
+                            }
+                            &fodp {
+                                .format-from-index(41);
+                            }
+                            &.neutral {
+                                .format-from-index(43);
                             }
                         }
                         .svg-file-recent {
@@ -610,14 +561,14 @@
             }
 
             .userLink {
-                background-position: -81px -234px;
+                background-position: -24px -28px;
                 background-repeat: no-repeat;
                 padding: 0 0 0 17px;
                 width: 16px;
                 height: 16px;
 
                 &.sharedLink {
-                    background-position: -24px -273px;
+                    background-position: -22px -44px;
                 }
                 .rtl & {
                     padding: 0 17px 0 0;
@@ -862,6 +813,15 @@
     -o-transform: rotate(180deg);
     transform: rotate(180deg);
     cursor: default;
+    .rtl & {
+        right: 0;
+        left: auto;
+        -moz-transform: rotate(0);
+        -ms-transform: rotate(0);
+        -webkit-transform: rotate(0);
+        -o-transform: rotate(0);
+        transform: rotate(0);
+    }
 }
 
 #search-results {

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -30,14 +30,12 @@
  *
  */
 /**
- * User: Julia.Radzhabova
  * Date: 22.02.2022
  */
 
 define([
     'core',
-    'common/main/lib/collection/Plugins',
-    'common/main/lib/view/PluginDlg'
+    'common/main/lib/collection/Plugins'
 ], function () {
     'use strict';
 
@@ -80,6 +78,8 @@ define([
                     {
                         me.configPlugins.plugins = false;
                     });
+                if (this.configPlugins.config.options)
+                    this.api.setPluginsOptions(this.configPlugins.config.options);
             } else
                 this.configPlugins.plugins = false;
 
@@ -238,7 +238,7 @@ define([
 
         onPluginsInit: function(pluginsdata) {
             !(pluginsdata instanceof Array) && (pluginsdata = pluginsdata["pluginsData"]);
-            this.parsePlugins(pluginsdata)
+            this.parsePlugins(pluginsdata, true);
         },
 
         runAutoStartPlugins: function() {
@@ -251,7 +251,7 @@ define([
             this.getApplication().getCollection('Common.Collections.Plugins').reset();
         },
 
-        parsePlugins: function(pluginsdata) {
+        parsePlugins: function(pluginsdata, forceUpdate) {
             var me = this;
             var pluginStore = this.getApplication().getCollection('Common.Collections.Plugins'),
                 isEdit = false,
@@ -261,18 +261,27 @@ define([
                 var arr = [],
                     lang = me.appOptions.lang.split(/[\-_]/)[0];
                 pluginsdata.forEach(function(item){
-                    if ( arr.some(function(i) {
-                            return (i.get('baseUrl') == item.baseUrl || i.get('guid') == item.guid);
+                    var updatedItem;
+                    if (forceUpdate) {
+                        updatedItem = arr.find(function (i){
+                            return i.get('baseUrl') == item.baseUrl || i.get('guid') == item.guid}
+                        );
+                        !updatedItem && (updatedItem = pluginStore.findWhere({baseUrl: item.baseUrl}));
+                        !updatedItem && (updatedItem = pluginStore.findWhere({guid: item.guid}));
+                    } else {
+                        if ( arr.some(function(i) {
+                                return (i.get('baseUrl') == item.baseUrl || i.get('guid') == item.guid);
+                            }
+                        ) || pluginStore.findWhere({baseUrl: item.baseUrl}) || pluginStore.findWhere({guid: item.guid}))
+                        {
+                            return;
                         }
-                    ) || pluginStore.findWhere({baseUrl: item.baseUrl}) || pluginStore.findWhere({guid: item.guid}))
-                    {
-                        return;
                     }
 
                     var variationsArr = [],
                         pluginVisible = false;
                     item.variations.forEach(function(itemVar){
-                        var isSystem = (true === itemVar.isSystem) || ("system" === itemVar.type);
+                        var isSystem = (true === itemVar.isSystem) || (Asc.PluginType.System === Asc.PluginType.getType(itemVar.type));
                         var visible = (isEdit || itemVar.isViewer && (itemVar.isDisplayedInViewer!==false)) && _.contains(itemVar.EditorsSupport, editor) && !isSystem;
                         if ( visible ) pluginVisible = true;
 
@@ -310,7 +319,7 @@ define([
                         if (pluginVisible)
                             pluginVisible = me.checkPluginVersion(apiVersion, item.minVersion);
 
-                        arr.push(new Common.Models.Plugin({
+                        var props = {
                             name : name,
                             guid: item.guid,
                             baseUrl : item.baseUrl,
@@ -321,7 +330,8 @@ define([
                             groupRank: (item.group) ? item.group.rank : 0,
                             minVersion: item.minVersion,
                             original: item
-                        }));
+                        };
+                        updatedItem ? updatedItem.set(props) : arr.push(new Common.Models.Plugin(props));
                     }
                 });
 

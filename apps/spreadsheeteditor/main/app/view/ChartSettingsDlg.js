@@ -1,5 +1,5 @@
 /*
- * (c) Copyright Ascensio System SIA 2010-2023
+ * (c) Copyright Ascensio System SIA 2010-2024
  *
  * This program is a free software product. You can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License (AGPL)
@@ -32,27 +32,22 @@
 /**
  *  ChartSettingsDlg.js
  *
- *  Created by Julia Radzhabova on 4/04/14
- *  Copyright (c) 2018 Ascensio System SIA. All rights reserved.
+ *  Created on 4/04/14
  *
  */
 
-define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template',
+define([
+    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template',
     'text!spreadsheeteditor/main/app/template/ChartVertAxis.template',
     'text!spreadsheeteditor/main/app/template/ChartHorAxis.template',
     'common/main/lib/view/AdvancedSettingsWindow',
-    'common/main/lib/component/CheckBox',
-    'common/main/lib/component/InputField',
-    'spreadsheeteditor/main/app/view/CellRangeDialog',
-    'spreadsheeteditor/main/app/view/ChartDataRangeDialog',
-    'spreadsheeteditor/main/app/view/FormatSettingsDialog'
 ], function (contentTemplate, vertTemplate, horTemplate) {
     'use strict';
 
     SSE.Views.ChartSettingsDlg = Common.Views.AdvancedSettingsWindow.extend(_.extend({
         options: {
             contentWidth: 327,
-            height: 535,
+            contentHeight: 450,
             toggleGroup: 'chart-settings-dlg-group',
             storageName: 'sse-chart-settings-adv-category'
         },
@@ -303,7 +298,8 @@ define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template'
                     items: [
                         { template: _.template('<div id="id-spark-dlg-menu-type" class="menu-insertchart"></div>') }
                     ]
-                })
+                }),
+                takeFocusOnClose: true
             });
             this.btnSparkType.on('render:after', function(btn) {
                 me.mnuSparkTypePicker = new Common.UI.DataView({
@@ -562,7 +558,7 @@ define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template'
                         (me.horAxisProps[index].getAxisType()===Asc.c_oAscAxisType.val) ? me.cmbMinType[ctrlIndex].focus() : (me.cmbHCrossType[ctrlIndex].isDisabled() ? me.btnHFormat[ctrlIndex].focus() : me.cmbHCrossType[ctrlIndex].focus());
                         break;
                     case 6:
-                        me.cmbEmptyCells.focus();
+                        me.btnSparkType.focus();
                         break;
                     case 7:
                         me.chShowAxis.focus();
@@ -1479,6 +1475,7 @@ define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template'
 
         _setDefaults: function(props) {
             var me = this;
+            Common.UI.FocusManager.add(this, this.btnsCategory);
             if (props ){
                 this.chartSettings = props;
                 if (this.isChart) {
@@ -1564,7 +1561,7 @@ define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template'
                         }
                     }
                 } else { // sparkline
-                    Common.UI.FocusManager.add(this, [this.cmbEmptyCells, this.chShowEmpty, // 6 tab
+                    Common.UI.FocusManager.add(this, [this.btnSparkType, this.cmbEmptyCells, this.chShowEmpty, // 6 tab
                                                             this.chShowAxis, this.chReverse, this.cmbSparkMinType, this.spnSparkMinValue, this.cmbSparkMaxType, this.spnSparkMaxValue]); // 7 tab
 
                     this._state.SparkType = props.asc_getType();
@@ -1625,6 +1622,7 @@ define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template'
                     this._noApply = false;
                 }
             }
+            Common.UI.FocusManager.add(this, this.getFooterButtons());
         },
 
         getSettings: function() {
@@ -1821,7 +1819,7 @@ define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template'
             }
         },
 
-        openFormat: function(index) {
+        openFormat: function(index, btn) {
             var me = this,
                 props = me.currentAxisProps[index],
                 fmt = props.getNumFmt(),
@@ -1844,6 +1842,7 @@ define([    'text!spreadsheeteditor/main/app/template/ChartSettingsDlg.template'
             })).on('close', function() {
                 me._isEditFormat && me.chartSettings.cancelEditData();
                 me._isEditFormat = false;
+                btn.focus();
             });
             me._isEditFormat = true;
             me.chartSettings.startEditData();
